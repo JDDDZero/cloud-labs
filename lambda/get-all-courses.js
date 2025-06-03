@@ -9,3 +9,4 @@ exports.handler = async () => {
     body: JSON.stringify(result.Items)
   };
 };
+
