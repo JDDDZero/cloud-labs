@@ -48,13 +48,15 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Effect = "Allow",
         Action = [
           "logs:*",
-          "dynamodb:*"
+          "dynamodb:*",
+          "cloudwatch:PutMetricData"
         ],
         Resource = "*"
       }
     ]
   })
 }
+
 
 locals {
   lambda_runtime = "nodejs16.x"
@@ -113,6 +115,34 @@ resource "aws_lambda_function" "delete_course" {
   runtime          = local.lambda_runtime
   role             = aws_iam_role.lambda_exec.arn
   source_code_hash = filebase64sha256(local.lambda_zip)
+}
+
+resource "aws_sns_topic" "lambda_alerts" {
+  name = "lambda-alerts-topic"
+}
+
+resource "aws_sns_topic_subscription" "email_alert" {
+  topic_arn = aws_sns_topic.lambda_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
+  alarm_name          = "lambda-error-alarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  alarm_description   = "Alarm when Lambda returns error"
+  dimensions = {
+    FunctionName = var.lambda_function_name
+  }
+  alarm_actions = [aws_sns_topic.lambda_alerts.arn]
+  treat_missing_data = "notBreaching"
 }
 
 resource "aws_api_gateway_rest_api" "api" {

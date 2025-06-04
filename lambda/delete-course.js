@@ -7,6 +7,28 @@ exports.handler = async (event) => {
     TableName: "courses",
     Key: { id }
   };
-  await db.delete(params).promise();
-  return { statusCode: 200, body: JSON.stringify({ message: "Course deleted" }) };
+
+  try {
+    await db.delete(params).promise();
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
+      },
+      body: JSON.stringify({ message: "Course deleted" })
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
+      },
+      body: JSON.stringify({ error: "Failed to delete course", details: err.message })
+    };
+  }
 };
